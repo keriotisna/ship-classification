@@ -1,5 +1,9 @@
 import matplotlib.pyplot as plt
 
+# TODO: Make this function work with mismatched image and grid sizes.
+#   Just display as many images as we can or as many to fill the grid as needed, 
+#   leaving empty space if needed.
+
 def plotImageGridClassification(
         data: list, 
         labels: list,
@@ -12,7 +16,7 @@ def plotImageGridClassification(
     An easy way to plot multiple images and their corresponding labels for exploratory data visualization.
     
     Arguments:
-        data: A list of individual images in any format. Can be reshaped to match the display format with the reshapeFunc argument.
+        data: A list of individual images in the format (H, W, C).
         labels: A list of label names for each corresponding image.
         plotShape: The number of images to display in the format (width, height).
         figsize: The matplotlib figure size to display.
@@ -35,7 +39,8 @@ def plotImageGridClassification(
             axs[r,c].set_axis_off()
             idx += 1
     
-    plt.subplots_adjust(
-        **kwargs['subplots_adjust']
-    )
+    if 'subplots_adjust' in kwargs:
+        plt.subplots_adjust(
+            **kwargs['subplots_adjust']
+        )
     plt.show()

@@ -19,7 +19,7 @@ class LinearBottleneck(torch.nn.Module):
             kernel_size: int = 3,
             expansion_ratio: int = 4,
             stride: int = 1,
-            activation: torch.nn.Module = nn.ReLU6(),
+            activation: torch.nn.Module = nn.ReLU6,
             **kwargs
         ):
         super().__init__(**kwargs)
@@ -50,7 +50,8 @@ class LinearBottleneck(torch.nn.Module):
             bias=False
         )
         
-        self.activation = activation
+        self.activation1 = activation()
+        self.activation2 = activation()
         self.norm = nn.BatchNorm2d(num_features=in_channels)
         
     
@@ -61,12 +62,12 @@ class LinearBottleneck(torch.nn.Module):
         
         # Perform initial convolution & activation
         out = self.mainConv(out)
-        out = self.activation(out)
+        out = self.activation1(out)
         
         # Compress manifold back to lower dimensions while retaining more information
         out = self.pointwiseCompression(out)
         out = self.norm(out)
-        out = self.activation(out)
+        out = self.activation2(out)
         
         return out
     

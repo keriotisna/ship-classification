@@ -1,24 +1,20 @@
 import torch
 import torch.nn as nn
 from .SeparableConv2d import SeparableConv2d
+from .BlurPool import BlurPool
 
-class DepthwiseSeparableConv2d(torch.nn.Module):
+# TODO: See if I can make this actually shape agnostic, but it might be tricky.
+#   The problem is that in BlurPool, we pad to ensure the post-blurred activations are
+#   the same shape as the input which is correct, but when downsampling, we don't align
+#   with shapes like conv2d(kernel_size=3, stride=2, padding=0) which makes combining
+#   these techniques much trickier.
+
+class DepthwiseSeparableConv2dAntiAliased(torch.nn.Module):
     
     '''
-    A (theoretically) more efficient convolutional block which breaks down operations into
-    depthwise-separable (DWS) convolutions. Additionally, we perform separable convolutions
-    where we break a convolution into multiple identical sized operations across the vertical
-    and horizontal directions for additional parameter savings to create a Separable Depthwise
-    Separable (SDWS) convolution.
-    
-    For a better explanation of DWS convolutions, see this:
-    https://www.youtube.com/watch?v=vVaRhZXovbw
-    
-    Overall data flow is:
-    
-    Input -> SDWSC_1 -> SDWSC_2 -> Output
-      V                             ^ Residual
-    Resolution Downsample -> Channel Matching
+    An extension of the Separable Depthwise-Separable convolutions with additional anti-aliasing
+    by using the BlurPool layer. The original version of this was actually using average pooling
+    to downsample which was extremely similar to the BlurPool method, resulting in little to no
     '''
     
     def __init__(
@@ -27,24 +23,28 @@ class DepthwiseSeparableConv2d(torch.nn.Module):
             out_channels: int,
             kernel_size: int = 3,
             stride: int = 1,
-            padding: int = 0,
             activation: torch.nn.Module = nn.ReLU,
             **kwargs
         ):
         
         super().__init__(**kwargs)
 
-        # Downsamples input resolution via standard MaxPooling
-        self.downsample = nn.Sequential(*[
-            nn.MaxPool2d(
-                kernel_size=kernel_size,
-                stride=stride,
-                padding=padding
-            ),
-            activation()
-        ])
+        
+        # Downsamples input resolution with anti-aliasing filter
+        self.downsampleInputResolution = BlurPool(
+            out_channels=out_channels,
+            stride=stride
+        )
 
-        # Expand channels to output size
+        
+        # Downsample the residual connection resolution separately
+        self.downsampleResidualResolution = nn.MaxPool2d(
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=1 # <-- This hard-coded padding really makes me sick, but it's the only way I can get the shapes to align
+        )
+        
+        # Expand channels to output size for the main SDWSC path
         self.inputChannelExpansion = nn.Sequential(*[
             nn.Conv2d(
                 in_channels=in_channels,
@@ -55,7 +55,7 @@ class DepthwiseSeparableConv2d(torch.nn.Module):
             activation()
         ])
 
-        # Expand input channel count to match output channel count for the residual connection
+        # Expand input channel count to match output channel count for the residual path
         self.residualChannelExpansion = nn.Sequential(*[
             nn.Conv2d(
                 in_channels=in_channels,
@@ -71,8 +71,8 @@ class DepthwiseSeparableConv2d(torch.nn.Module):
         self.separableConv1 = SeparableConv2d(
             in_channels=out_channels,
             kernel_size=kernel_size,
-            stride=stride,
-            padding=padding,
+            padding='same',
+            stride=1,
             groups=out_channels
         )
         self.pointwise1 = nn.Sequential(*[
@@ -103,29 +103,25 @@ class DepthwiseSeparableConv2d(torch.nn.Module):
             ),
             activation()
         ])
-                
+        
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
-        # Expand channels to output size
         out = self.inputChannelExpansion(x)
 
-        # Perform SDWS convolution
+        # SDWSC 1
         out = self.separableConv1(out)
         out = self.pointwise1(out)
+        out = self.downsampleInputResolution(out) # Downsample input path
 
-        # Perform second SDWS convolution
+        # SDWSC 2
         out = self.separableConv2(out)
         out = self.pointwise2(out)
 
-        # Downsample input to match residual resolution
-        residual = self.downsample(x)
-        
-        # Change channel count to match output residual channel count
+        residual = self.downsampleResidualResolution(x)
         residual = self.residualChannelExpansion(residual)
 
-        # Create residual connection
-        out = out + residual
-
+        out = residual + out
         return out
+
 

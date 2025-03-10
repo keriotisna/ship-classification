@@ -2,6 +2,8 @@ from .DepthwiseSeparableConv2d import *
 from .ResidualBlock import *
 from .ResidualBlockVersatile import *
 from .SeparableConv2d import *
+from .BlurPool import *
+from .DepthwiseSeparableConv2dAntiAliased import *
 
 # Explicitly define what's exported
 __all__ = [

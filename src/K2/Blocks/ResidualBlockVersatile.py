@@ -20,7 +20,7 @@ class ResidualBlockVersatile(torch.nn.Module):
         stride: int = 1,
         padding: int = 0,
         groups: int = 1,
-        activation: torch.nn.Module = nn.ReLU(),
+        activation: torch.nn.Module = nn.ReLU,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -62,18 +62,21 @@ class ResidualBlockVersatile(torch.nn.Module):
         self.norm1 = nn.BatchNorm2d(num_features=out_channels)
         self.norm2 = nn.BatchNorm2d(num_features=out_channels)
 
-        self.activation = activation
+        self.activation1 = activation()
+        self.activation2 = activation()
+        self.activation3 = activation()
+
         
         
             
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
         out = self.layer1(x)
-        out = self.activation(out)
+        out = self.activation1(out)
         out = self.norm1(out)
 
         out = self.layer2(out)
-        out = self.activation(out)
+        out = self.activation2(out)
         out = self.norm2(out)
 
         residual = self.downsample(x)
@@ -81,4 +84,4 @@ class ResidualBlockVersatile(torch.nn.Module):
 
         out = out + residual
 
-        return self.activation(out) 
+        return self.activation3(out) 

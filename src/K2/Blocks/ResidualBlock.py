@@ -15,7 +15,7 @@ class ResidualBlock(torch.nn.Module):
             in_channels: int,
             kernel_size: int = 3,
             groups: int = 1,
-            activation: torch.nn.Module = nn.ReLU(),
+            activation: torch.nn.Module = nn.ReLU,
             **kwargs):
         super().__init__(**kwargs)
         
@@ -38,18 +38,20 @@ class ResidualBlock(torch.nn.Module):
         self.norm1 = nn.BatchNorm2d(num_features=in_channels)
         self.norm2 = nn.BatchNorm2d(num_features=in_channels)
 
-        self.activation = activation
+        self.activation1 = activation()
+        self.activation2 = activation()
+        self.activation3 = activation()
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
         out = self.layer1(x)
-        out = self.activation(out)
+        out = self.activation1(out)
         out = self.norm1(out)
         
         out = self.layer2(out)
-        out = self.activation(out)
+        out = self.activation2(out)
         out = self.norm2(out)
         
         out = out + x
         
-        return self.activation(out)
+        return self.activation3(out)
