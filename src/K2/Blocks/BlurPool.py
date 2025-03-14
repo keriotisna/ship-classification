@@ -86,6 +86,19 @@ class BlurPool(torch.nn.Module):
     def forward(self, x):
         paddedInput = self.pad(x)
         # Filter each channel individually with 1 group per channel after padding
-        # TODO: Try doing a standard stride-1 convolution followed by a stride 2? That would
-        # align the shapes but may hurt performance, need to check and see.
         return nn.functional.conv2d(paddedInput, self.gaussianFilter, stride=self.stride, groups=x.shape[1])
+
+        # TODO: Keep investigating this later
+        # This ended up being slightly worse, but I still feel like it would be something worth trying
+        # because it would save a lot of headache in network design if the SHAPES JUST LINED UP.
+        # out = nn.functional.conv2d(paddedInput, 
+        #     self.gaussianFilter, 
+        #     stride=1, 
+        #     groups=x.shape[1]
+        # )
+        # # We will adjust where we start our striding process to ensure the output shape from the BlurPooling 
+        # # matches the shape of a standard convolution. Checking now if this kills performance or not.
+        # hOffset = self.kernel_size - 1
+        # wOffset = self.kernel_size - 1
+        # return out[:, :, hOffset::self.stride, wOffset::self.stride]
+
