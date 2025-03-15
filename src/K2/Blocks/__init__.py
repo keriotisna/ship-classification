@@ -6,6 +6,7 @@ from .BlurPool import *
 from .DepthwiseSeparableConv2dAntiAliased import *
 from .SEBlock import *
 from .ShuffleBlock import *
+from .ShuffledLinearBottleneck import *
 
 # Explicitly define what's exported
 __all__ = [
