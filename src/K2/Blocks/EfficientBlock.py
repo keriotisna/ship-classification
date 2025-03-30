@@ -4,6 +4,7 @@ from .BlurPool import BlurPool
 from .SeparableConv2d import SeparableConv2d
 from .ShuffleBlock import ShuffleBlock
 
+# TODO: Write me
 class EfficientBlock(torch.nn.Module):
     
     '''

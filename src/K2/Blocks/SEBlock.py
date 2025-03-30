@@ -16,7 +16,7 @@ class SEBlock(torch.nn.Module):
     def __init__(
             self,
             in_channels: int,
-            squeeze_factor: float,
+            squeeze_factor: float = 0.25,
             activation: nn.Module = nn.GELU,
             **kwargs
         ):

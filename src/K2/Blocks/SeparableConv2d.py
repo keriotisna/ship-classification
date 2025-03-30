@@ -32,7 +32,7 @@ class SeparableConv2d(torch.nn.Module):
             padding=verticalPadding,
             groups=groups,
             bias=False
-            )
+        )
         
         self.horizontalConv = nn.Conv2d(
             in_channels=in_channels, 
@@ -42,7 +42,7 @@ class SeparableConv2d(torch.nn.Module):
             padding=horizontalPadding,
             groups=groups,
             bias=False
-            )
+        )
         
     def forward(self, x) -> torch.Tensor:
         out = self.verticalConv(x)
